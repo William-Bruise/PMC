@@ -1,0 +1,2 @@
+# Runtime dependencies (install in your own environment)
+torch>=2.1
