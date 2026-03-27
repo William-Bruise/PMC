@@ -30,6 +30,7 @@ def train_neumatc(
     p_collocation: torch.Tensor,
     cfg: TrainConfig,
     device: str = "cpu",
+    targets_train: List[torch.Tensor] | None = None,
 ) -> NeuMatC:
     model = NeuMatC(
         output_shapes=task.output_shapes,
@@ -40,7 +41,10 @@ def train_neumatc(
 
     p_train = p_train.to(device)
     p_collocation = p_collocation.to(device)
-    targets_train = [t.to(device) for t in task.target_fn(p_train)]
+    if targets_train is None:
+        targets_train = [t.to(device) for t in task.target_fn(p_train)]
+    else:
+        targets_train = [t.to(device) for t in targets_train]
 
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
 
@@ -74,11 +78,20 @@ def train_neumatc(
     return model
 
 
-def evaluate(task: ParametricTask, model: NeuMatC, p_test: torch.Tensor, device: str = "cpu") -> Dict[str, float]:
+def evaluate(
+    task: ParametricTask,
+    model: NeuMatC,
+    p_test: torch.Tensor,
+    device: str = "cpu",
+    targets_test: List[torch.Tensor] | None = None,
+) -> Dict[str, float]:
     with torch.no_grad():
         p_test = p_test.to(device)
         pred = model(p_test)
-        target = [t.to(device) for t in task.target_fn(p_test)]
+        if targets_test is None:
+            target = [t.to(device) for t in task.target_fn(p_test)]
+        else:
+            target = [t.to(device) for t in targets_test]
         relerr = relative_error(pred, target)
         residual = task.residual_fn(p_test, pred)
         res = (residual**2).mean().sqrt().item()

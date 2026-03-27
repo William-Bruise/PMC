@@ -5,6 +5,12 @@
 > 论文核心思想：学习参数 `p -> 矩阵运算结果 G(p)` 的低秩连续映射，形式为
 > `G_i(p) = C_i ×_3 Φ_{θ_i}(p)`，并结合监督项 + 残差约束 + 自适应配点(collocation)训练。
 
+## 你提出的新需求（已实现）
+
+- **自动生成数据**：运行训练脚本时会先检查本地数据文件，不存在就自动生成并保存。
+- **可重复实验**：数据文件按 task / 矩阵规模 / 样本数 / seed 命名，下一次运行会直接复用。
+- **Bash 脚本**：提供一键运行脚本，直接在 shell 中执行。
+
 ## 已实现内容
 
 - 通用 NeuMatC 模型：
@@ -18,6 +24,10 @@
   - 监督损失（训练采样点）
   - 残差损失（collocation 点）
   - 按间隔进行 failure region 筛选并追加 collocation 点（Algorithm 1 风格）
+- 数据流程包含：
+  - 自动生成 `p_train / p_collocation / p_test`
+  - 自动生成并缓存 `targets_train / targets_test`
+  - 自动加载缓存数据，减少重复预处理时间
 
 ## 安装
 
@@ -25,28 +35,47 @@
 python -m pip install -r requirements.txt
 ```
 
-## 运行
+## 运行（自动生成数据）
 
-### 1) 矩阵求逆任务
+### 1) 直接运行 Python 脚本
 
 ```bash
 python scripts/reproduce_neumatc.py --task inversion --n 16 --steps 800
-```
-
-### 2) 矩阵 SVD 任务
-
-```bash
 python scripts/reproduce_neumatc.py --task svd --n 16 --steps 800
 ```
 
-输出是 JSON，包含训练耗时、测试评估耗时、相对误差、残差 RMSE。
+首次运行会在 `data/` 下生成 `.pt` 数据；后续重复运行默认直接复用。
+
+如果你要强制重建数据：
+
+```bash
+python scripts/reproduce_neumatc.py --task inversion --force-regenerate-data
+```
+
+### 2) 使用 Bash 脚本（你要求的命令脚本）
+
+运行单个任务：
+
+```bash
+bash scripts/run_neumatc.sh inversion --n 16 --steps 800
+bash scripts/run_neumatc.sh svd --n 16 --steps 800
+```
+
+连续跑两个任务：
+
+```bash
+bash scripts/run_all.sh --n 16 --steps 800
+```
 
 ## 文件结构
 
 - `neumatc/model.py`：NeuMatC 网络定义（encoder + tensor heads）
 - `neumatc/tasks.py`：参数化矩阵任务定义、真值构建、残差函数
 - `neumatc/train.py`：训练与评估（含自适应 collocation）
-- `scripts/reproduce_neumatc.py`：一键实验脚本
+- `neumatc/data.py`：自动数据生成、缓存、加载
+- `scripts/reproduce_neumatc.py`：主实验入口（先数据再训练）
+- `scripts/run_neumatc.sh`：单任务 bash 命令脚本
+- `scripts/run_all.sh`：双任务 batch bash 命令脚本
 
 ## 说明
 
