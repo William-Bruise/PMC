@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-python scripts/reproduce_neumatc.py --task inversion "$@"
-python scripts/reproduce_neumatc.py --task svd "$@"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+bash "$SCRIPT_DIR/run_neumatc.sh" inversion "$@"
+bash "$SCRIPT_DIR/run_neumatc.sh" svd "$@"
